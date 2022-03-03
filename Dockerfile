@@ -15,20 +15,25 @@ ARG DEV_PACKAGES="postgresql-dev sqlite-libs sqlite-dev yaml-dev zlib-dev nodejs
 ARG RUBY_PACKAGES="tzdata"
 
 # Install app dependencies.
-RUN apk update \
+RUN export HTTPS_PROXY="http://proxy1-sci.mirz.uni-jena.de:3128" \
+    && apk update \
     && apk upgrade \
-    && apk add --update --no-cache $BUILD_PACKAGES $DEV_PACKAGES $RUBY_PACKAGES
+    && apk add --update --no-cache $BUILD_PACKAGES $DEV_PACKAGES $RUBY_PACKAGES \
+    && unset HTTPS_PROXY
 
 COPY Gemfile* ./
 COPY Gemfile Gemfile.lock $RAILS_ROOT/
 
-RUN bundle config --global frozen 1 \
+RUN export HTTP_PROXY="http://proxy1-sci.mirz.uni-jena.de:3128" \
+    && export HTTPS_PROXY="http://proxy1-sci.mirz.uni-jena.de:3128" \
+    && bundle config --global frozen 1 \
     && bundle config set deployment 'true' \
     && bundle config set without 'development:test:assets' \
     && bundle install -j4 --path=vendor/bundle \
     && rm -rf vendor/bundle/ruby/2.7.0/cache/*.gem \
     && find vendor/bundle/ruby/2.7.0/gems/ -name "*.c" -delete \
-    && find vendor/bundle/ruby/2.7.0/gems/ -name "*.o" -delete
+    && find vendor/bundle/ruby/2.7.0/gems/ -name "*.o" -delete \
+    && unset HTTP_PROXY HTTPS_PROXY
 
 # Adding project files.
 COPY . .
@@ -49,9 +54,11 @@ ENV BUNDLE_APP_CONFIG="$RAILS_ROOT/.bundle"
 
 WORKDIR $RAILS_ROOT
 
-RUN apk update \
+RUN export HTTPS_PROXY="http://proxy1-sci.mirz.uni-jena.de:3128" \
+    && apk update \
     && apk upgrade \
-    && apk add --update --no-cache $PACKAGES
+    && apk add --update --no-cache $PACKAGES \
+    && unset HTTPS_PROXY
 
 
 COPY --from=base $RAILS_ROOT $RAILS_ROOT
